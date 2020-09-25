@@ -31,6 +31,11 @@ class DataExtractor:
                     for ref in re.findall(self.href_regex, wiki_doc["text"])
                 ]
                 data[wiki_doc["title"]] = wiki_doc
+
+                del wiki_doc["text"]
+                del wiki_doc["title"]
+                del wiki_doc["url"]
+
         return data
 
 
@@ -47,5 +52,5 @@ if __name__ == "__main__":
                 all_docs.update(docs)
                 pbar.update()
 
-    with open('data/wiki.pickle', 'wb+') as handle:
+    with open("data/wiki.pickle", "wb+") as handle:
         pickle.dump(all_docs, handle, protocol=pickle.HIGHEST_PROTOCOL)
