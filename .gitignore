@@ -1,2 +1,4 @@
 .idea
 data/
+**/__pycache__/
+gym_wikigame.egg-info
