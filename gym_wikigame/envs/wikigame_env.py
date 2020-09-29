@@ -30,7 +30,11 @@ class WikigameEnv(gym.Env):
     def compute_dot_product(action, reference_emb):
         if reference_emb is None:
             return 0
-        return np.dot(action, reference_emb)
+        try:
+            return np.dot(action, reference_emb)
+        except:
+            #TODO not sure why this is happenning, need to investigate
+            return np.dot(action, np.squeeze(reference_emb))
 
     def step(self, action):
         current_references = self.data[self.current_state]["refs"]
@@ -38,23 +42,27 @@ class WikigameEnv(gym.Env):
         dot_products = [self.compute_dot_product(action, emb) for emb in current_references_embeddings]
         closest_page = current_references[np.argmax(dot_products)]
 
+        print(f'Navigating: {closest_page}')
+
         done = False
         if closest_page == self.goal_state:
             done = True
         reward = int(done)
         self.current_state = closest_page
 
-        return closest_page, reward, done, None
+        return (self.data[self.current_state], self.data[self.goal_state]), reward, done, None
 
     def reset(self):
         self.start_state = random.choice(list(self.data))
         self.goal_state = random.choice(list(self.data))
 
+        print(f'Start state: {self.start_state}\nGoal state: {self.goal_state}\n')
+
         self.current_state = self.start_state
 
         return (
-            self.data[self.current_state]["title_embedding"],
-            self.data[self.goal_state]["title_embedding"],
+            self.data[self.current_state],
+            self.data[self.goal_state],
         )
 
     def render(self, mode="human"):
