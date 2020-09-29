@@ -18,27 +18,17 @@ class WikigameEnv(gym.Env):
         with open("data/wiki_with_embeddings.pickle", "rb") as handle:
             self.data = pickle.load(handle)
 
-    def find_title_embedding(self, title):
-        try:
-            return self.data[title]["title_embedding"]
-        except KeyError:
-            # TODO handle this error properly (need a list of aliases for each page)
-            print(f"Key not found: {title}")
-            return None
-
     @staticmethod
     def compute_dot_product(action, reference_emb):
-        if reference_emb is None:
-            return 0
         try:
             return np.dot(action, reference_emb)
         except:
-            #TODO not sure why this is happenning, need to investigate
+            # TODO not sure why this is happening, need to investigate
             return np.dot(action, np.squeeze(reference_emb))
 
     def step(self, action):
         current_references = self.data[self.current_state]["refs"]
-        current_references_embeddings = [self.find_title_embedding(ref) for ref in current_references]
+        current_references_embeddings = [self.data[ref]["title_embedding"] for ref in current_references]
         dot_products = [self.compute_dot_product(action, emb) for emb in current_references_embeddings]
         closest_page = current_references[np.argmax(dot_products)]
 
