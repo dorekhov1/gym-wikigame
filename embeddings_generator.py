@@ -10,7 +10,7 @@ class EmbeddingsGenerator:
     def __init__(self):
         self.batch_size = 512
         self.wiki_data_file = "data/wiki.pickle"
-        self.wiki_data_file_with_embeddings = "data/wiki_with_embeddings.pickle"
+        self.wiki_data_file_with_embeddings = "data/full_wiki_with_embeddings.pickle"
 
         tf.config.set_visible_devices([], 'GPU')
 
@@ -32,11 +32,15 @@ class EmbeddingsGenerator:
         for page_title in tqdm.tqdm(self.wiki_data):
             batch_page_titles.append(page_title)
             if len(batch_page_titles) == self.batch_size:
-                batch_title_embeddings = self.embed(batch_page_titles)
-                for i, processed_page_title in enumerate(batch_page_titles):
-                    page = self.wiki_data[processed_page_title]
-                    page["title_embedding"] = batch_title_embeddings[i].numpy()
+                self.embed_batch(batch_page_titles)
                 batch_page_titles = []
+        self.embed_batch(batch_page_titles)
+
+    def embed_batch(self, batch_page_titles):
+        batch_title_embeddings = self.embed(batch_page_titles)
+        for i, processed_page_title in enumerate(batch_page_titles):
+            page = self.wiki_data[processed_page_title]
+            page["title_embedding"] = batch_title_embeddings[i].numpy()
 
     def save_data(self):
         with open(self.wiki_data_file_with_embeddings, "wb+") as handle:
