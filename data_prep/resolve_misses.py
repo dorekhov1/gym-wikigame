@@ -13,10 +13,10 @@ def url_validator(url):
         return False
 
 
-with open("data/missed_refs.pickle", "rb") as handle:
+with open("../data/missed_refs.pickle", "rb") as handle:
     missed_refs = pickle.load(handle)
 
-with open("data/wiki.pickle", "rb") as handle:
+with open("../data/wiki.pickle", "rb") as handle:
     wiki = pickle.load(handle)
 
 site = mwclient.Site('en.wikipedia.org')

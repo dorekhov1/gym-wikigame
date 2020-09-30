@@ -11,7 +11,7 @@ import numpy as np
 
 class DataExtractor:
     def __init__(self):
-        self.data_dir = "data/extracted"
+        self.data_dir = "../data/extracted"
         self.href_regex = r"<a href=\"(.*?)\".*?<\/a>"
         self.min_number_of_references = 5
 
@@ -101,7 +101,7 @@ class DataExtractor:
 
     def reuse_embeddings(self):
         print('loading embeddings')
-        with open("data/full_wiki_with_embeddings.pickle", "rb") as handle:
+        with open("../data/full_wiki_with_embeddings.pickle", "rb") as handle:
             wiki_with_embeddings = pickle.load(handle)
 
         all_removed_keys = np.setdiff1d(
@@ -110,7 +110,7 @@ class DataExtractor:
         for key in list(all_removed_keys):
             del wiki_with_embeddings[key]
 
-        with open("data/wiki_with_embeddings.pickle", "wb+") as handle:
+        with open("../data/wiki_with_embeddings.pickle", "wb+") as handle:
             pickle.dump(wiki_with_embeddings, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
@@ -134,17 +134,17 @@ if __name__ == "__main__":
         ) and data_extractor.check_for_zeros()
 
     print('saving wiki')
-    with open("data/wiki.pickle", "wb+") as handle:
+    with open("../data/wiki.pickle", "wb+") as handle:
         pickle.dump(data_extractor.all_docs, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     print('saving missed refs')
-    with open("data/missed_refs.pickle", "wb+") as handle:
+    with open("../data/missed_refs.pickle", "wb+") as handle:
         pickle.dump(
             data_extractor.all_missed_refs, handle, protocol=pickle.HIGHEST_PROTOCOL
         )
 
     print('saving removed refs')
-    with open("data/removed_refs.pickle", "wb+") as handle:
+    with open("../data/removed_refs.pickle", "wb+") as handle:
         pickle.dump(
             data_extractor.pages_with_few_references,
             handle,

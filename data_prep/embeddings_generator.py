@@ -9,8 +9,8 @@ import tensorflow_hub as hub
 class EmbeddingsGenerator:
     def __init__(self):
         self.batch_size = 512
-        self.wiki_data_file = "data/wiki.pickle"
-        self.wiki_data_file_with_embeddings = "data/full_wiki_with_embeddings.pickle"
+        self.wiki_data_file = "../data/wiki.pickle"
+        self.wiki_data_file_with_embeddings = "../data/full_wiki_with_embeddings.pickle"
 
         tf.config.set_visible_devices([], 'GPU')
 
