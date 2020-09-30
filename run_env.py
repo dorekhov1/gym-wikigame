@@ -1,12 +1,16 @@
-from agents.simple_agents import *
-
 import gym
+from gym_wikigame.envs.data_handler import DataHandler
+
+from agents.simple_agents import *
 
 
 if __name__ == "__main__":
 
     env = gym.make("gym_wikigame:wikigame-v0")
     env.seed(0)
+
+    data_handler = DataHandler()
+    env.set_data_handler(data_handler)
 
     agent = SimpleRandomAgent()
 

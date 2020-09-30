@@ -1,9 +1,6 @@
 import random
-import pickle
 
 import gym
-from gym import error, spaces, utils
-from gym.utils import seeding
 import numpy as np
 
 
@@ -13,46 +10,58 @@ class WikigameEnv(gym.Env):
     def __init__(self):
         self.goal_state = None
         self.start_state = None
-        self.current_state = None
+        self.curr_state = None
+        self.data_handler = None
 
-        with open("data/wiki_with_embeddings.pickle", "rb") as handle:
-            self.data = pickle.load(handle)
+    def set_data_handler(self, data_handler):
+        self.data_handler = data_handler
 
     @staticmethod
-    def compute_dot_product(action, reference_emb):
+    def compute_dot_product(action, ref_emb):
         try:
-            return np.dot(action, reference_emb)
+            return np.dot(action, ref_emb)
         except:
             # TODO not sure why this is happening, need to investigate
-            return np.dot(action, np.squeeze(reference_emb))
+            return np.dot(action, np.squeeze(ref_emb))
 
     def step(self, action):
-        current_references = self.data[self.current_state]["refs"]
-        current_references_embeddings = [self.data[ref]["title_embedding"] for ref in current_references]
-        dot_products = [self.compute_dot_product(action, emb) for emb in current_references_embeddings]
-        closest_page = current_references[np.argmax(dot_products)]
+        curr_refs, curr_refs_embeddings = self.data_handler.get_refs_with_embeddings(
+            self.curr_state
+        )
+        dot_products = [
+            self.compute_dot_product(action, emb) for emb in curr_refs_embeddings
+        ]
+        closest_page = curr_refs[np.argmax(dot_products)]
 
-        print(f'Navigating: {closest_page}')
+        print(f"Navigating: {closest_page}")
 
         done = False
         if closest_page == self.goal_state:
             done = True
         reward = int(done)
-        self.current_state = closest_page
-
-        return (self.data[self.current_state], self.data[self.goal_state]), reward, done, None
-
-    def reset(self):
-        self.start_state = random.choice(list(self.data))
-        self.goal_state = random.choice(list(self.data))
-
-        print(f'Start state: {self.start_state}\nGoal state: {self.goal_state}\n')
-
-        self.current_state = self.start_state
+        self.curr_state = closest_page
 
         return (
-            self.data[self.current_state],
-            self.data[self.goal_state],
+            (
+                self.data_handler.get(self.curr_state),
+                self.data_handler.get(self.goal_state),
+            ),
+            reward,
+            done,
+            None,
+        )
+
+    def reset(self):
+        self.start_state = self.data_handler.get_random_page()
+        self.goal_state = self.data_handler.get_random_page()
+
+        print(f"Start state: {self.start_state}\nGoal state: {self.goal_state}\n")
+
+        self.curr_state = self.start_state
+
+        return (
+            self.data_handler.get(self.curr_state),
+            self.data_handler.get(self.goal_state),
         )
 
     def render(self, mode="human"):
@@ -64,8 +73,3 @@ class WikigameEnv(gym.Env):
     def seed(self, seed=None):
         random.seed(seed)
         return [seed]
-
-
-if __name__ == "__main__":
-    e = WikigameEnv()
-    print("done")
