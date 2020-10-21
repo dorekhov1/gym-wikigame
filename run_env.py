@@ -2,6 +2,7 @@ import gym
 from gym_wikigame.envs.data_handler import DataHandler
 
 from agents.simple_agents import *
+from agents.a_star_agent import AStarAgent
 
 
 if __name__ == "__main__":
@@ -12,7 +13,7 @@ if __name__ == "__main__":
     data_handler = DataHandler()
     env.set_data_handler(data_handler)
 
-    agent = SimpleRandomAgent()
+    agent = AStarAgent(data_handler)
 
     episode_count = 1
     reward = 0

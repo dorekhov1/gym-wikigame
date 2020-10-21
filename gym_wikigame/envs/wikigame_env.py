@@ -24,22 +24,29 @@ class WikigameEnv(gym.Env):
             # TODO not sure why this is happening, need to investigate
             return np.dot(action, np.squeeze(ref_emb))
 
-    def step(self, action):
-        curr_refs, curr_refs_embeddings = self.data_handler.get_refs_with_embeddings(
-            self.curr_state
-        )
-        dot_products = [
-            self.compute_dot_product(action, emb) for emb in curr_refs_embeddings
-        ]
-        closest_page = curr_refs[np.argmax(dot_products)]
+    def step(self, action: dict):
+        if action["type"] == "return":
+            self.curr_state = action["returning_state"]
+            print(f"Returning: {action['returning_state']}")
+            done, reward = False, 0
+        else:
+            (
+                curr_refs,
+                curr_refs_embeddings,
+            ) = self.data_handler.get_refs_with_embeddings(self.curr_state)
+            dot_products = [
+                self.compute_dot_product(action["direction"], emb)
+                for emb in curr_refs_embeddings
+            ]
+            closest_page = curr_refs[np.argmax(dot_products)]
 
-        print(f"Navigating: {closest_page}")
+            print(f"Navigating: {closest_page}")
 
-        done = False
-        if closest_page == self.goal_state:
-            done = True
-        reward = int(done)
-        self.curr_state = closest_page
+            done = False
+            if closest_page == self.goal_state:
+                done = True
+            reward = int(done)
+            self.curr_state = closest_page
 
         return (
             (

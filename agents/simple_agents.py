@@ -8,7 +8,7 @@ class RandomAgent(object):
         self.dim = dim
 
     def act(self, observation, reward, done):
-        return np.random.rand(self.dim)
+        return {"type": "move", "direction": np.random.rand(self.dim)}
 
 
 class SimpleAgent(object):
@@ -16,7 +16,7 @@ class SimpleAgent(object):
         self.dim = dim
 
     def act(self, observation, reward, done):
-        return observation[1]["title_embedding"]
+        return {"type": "move", "direction": observation[1]["title_embedding"]}
 
 
 class SimpleRandomAgent(object):
@@ -27,4 +27,4 @@ class SimpleRandomAgent(object):
     def act(self, observation, reward, done):
         if random.random() < self.prob:
             return np.random.rand(self.dim)
-        return observation[1]["title_embedding"]
+        return {"type": "move", "direction": observation[1]["title_embedding"]}
