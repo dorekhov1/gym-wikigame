@@ -81,7 +81,7 @@ class DataExtractor:
                         missed_links_by_title += 1
                         continue
 
-                    if link_id in self.pages:
+                    if link_id in self.pages and target_title != self.pages[link_id]['title']:
                         self.pages[link_id]["links"].add(target_title)
                     else:
                         missed_links_by_link_id += 1
