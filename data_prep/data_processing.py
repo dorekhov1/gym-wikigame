@@ -109,6 +109,25 @@ class DataExtractor:
             title = page["title"]
             self.pages[title] = self.pages.pop(page_id)
 
+    def remove_pages_with_few_links(self, n=5):
+        num_pages = len(self.pages)
+
+        pages_to_remove = []
+        for page_title in tqdm(self.pages.keys()):
+            page = self.pages[page_title]
+            page_links = page['links']
+
+            if len(page_links) < n:
+                pages_to_remove.append(page_title)
+
+        for page_title in pages_to_remove:
+            del self.pages[page_title]
+
+        self.remove_invalid_links()
+
+        if len(self.pages) != num_pages:
+            self.remove_pages_with_few_links()
+
     def remove_invalid_links(self):
         num_links_removed = 0
         all_titles = set(self.pages.keys())
@@ -165,6 +184,9 @@ if __name__ == "__main__":
 
     print("Removing invalid links")
     data_extractor.remove_invalid_links()
+
+    print("Removing pages with few links")
+    data_extractor.remove_pages_with_few_links()
 
     print("Saving pages")
     data_extractor.save_pages()
