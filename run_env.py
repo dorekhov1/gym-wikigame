@@ -1,6 +1,6 @@
 import gym
-from gym_wikigame.envs.data_handler import DataHandler
 
+import graph_tool as gt
 from agents.simple_agents import *
 from agents.a_star_agent import AStarAgent
 
@@ -8,12 +8,12 @@ from agents.a_star_agent import AStarAgent
 if __name__ == "__main__":
 
     env = gym.make("gym_wikigame:wikigame-v0")
-    env.seed(0)
+    env.seed(2)
 
-    data_handler = DataHandler()
-    env.set_data_handler(data_handler)
+    wiki_graph = gt.load_graph("data/processed/graph_with_embeddings.gt")
+    env.set_graph(wiki_graph)
 
-    agent = AStarAgent(data_handler)
+    agent = SimpleRandomAgent(wiki_graph)
 
     episode_count = 1
     reward = 0
