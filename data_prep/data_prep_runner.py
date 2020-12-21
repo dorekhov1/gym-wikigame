@@ -41,6 +41,8 @@ def run_graph_creation():
     gc.create_vertices()
     print("Creating edges")
     gc.create_edges()
+    print("Extracting largest component")
+    gc.extract_largest_component()
     print("Saving graph")
     gc.save_graph()
 

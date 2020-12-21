@@ -22,15 +22,20 @@ class EmbeddingComputer:
 
     def embed_titles(self):
         batch_page_titles = []
+        clean_batch_page_titles = []
         for page_title in tqdm(self.pages):
-            batch_page_titles.append(page_title)
-            if len(batch_page_titles) == self.batch_size:
-                self.embed_batch(batch_page_titles)
-                batch_page_titles = []
-        self.embed_batch(batch_page_titles)
 
-    def embed_batch(self, batch_page_titles):
-        batch_title_embeddings = self.embed(batch_page_titles)
+            clean_title = page_title.replace("_", " ").replace("\\", "")
+
+            batch_page_titles.append(page_title)
+            clean_batch_page_titles.append(clean_title)
+            if len(batch_page_titles) == self.batch_size:
+                self.embed_batch(batch_page_titles, clean_batch_page_titles)
+                batch_page_titles = []
+        self.embed_batch(batch_page_titles, clean_batch_page_titles)
+
+    def embed_batch(self, batch_page_titles, clean_batch_page_titles):
+        batch_title_embeddings = self.embed(clean_batch_page_titles)
         for i, processed_page_title in enumerate(batch_page_titles):
             page = self.pages[processed_page_title]
             page["title_embedding"] = batch_title_embeddings[i].numpy()

@@ -109,7 +109,7 @@ class DataExtractor:
             title = page["title"]
             self.pages[title] = self.pages.pop(page_id)
 
-    def remove_pages_with_few_links(self, n=5):
+    def remove_pages_with_few_links(self, n=500, recursive=False):
         num_pages = len(self.pages)
 
         pages_to_remove = []
@@ -125,7 +125,7 @@ class DataExtractor:
 
         self.remove_invalid_links()
 
-        if len(self.pages) != num_pages:
+        if recursive and len(self.pages) != num_pages:
             self.remove_pages_with_few_links()
 
     def remove_invalid_links(self):

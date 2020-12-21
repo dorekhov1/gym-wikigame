@@ -2,6 +2,7 @@ import pickle
 
 from tqdm import tqdm
 from graph_tool.all import *
+from graph_tool.topology import *
 
 
 class GraphCreator:
@@ -25,24 +26,28 @@ class GraphCreator:
             page = self.pages[page_title]
             page_vertex = self.g.add_vertex()
             self.g.vp.title[page_vertex] = page_title
-            self.g.vp.id[page_vertex] = page['id']
-            self.g.vp.embedding[page_vertex] = page['title_embedding']
+            self.g.vp.id[page_vertex] = page["id"]
+            self.g.vp.embedding[page_vertex] = page["title_embedding"]
             self.page_title_to_vertex_map[page_title] = page_vertex
 
-            del page['title_embedding']
-            del page['id']
+            del page["title_embedding"]
+            del page["id"]
 
     def create_edges(self):
         for page_title in tqdm(self.pages.keys()):
             page = self.pages[page_title]
             page_vertex = self.page_title_to_vertex_map[page_title]
-            links = page['links']
+            links = page["links"]
 
             for link in links:
                 link_page = self.page_title_to_vertex_map[link]
                 self.g.add_edge(page_vertex, link_page)
 
-            del page['links']
+            del page["links"]
+
+    def extract_largest_component(self):
+        self.g = extract_largest_component(self.g, prune=True, directed=True)
+        self.g = Graph(self.g, prune=True)
 
     def save_graph(self):
         self.g.save("data/processed/graph_with_embeddings.gt")
@@ -59,6 +64,9 @@ if __name__ == "__main__":
 
     print("creating edges")
     gc.create_edges()
+
+    print("extracting the largest component")
+    gc.extract_largest_component()
 
     print("saving graph")
     gc.save_graph()
