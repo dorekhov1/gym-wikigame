@@ -9,8 +9,8 @@ class RandomAgent(object):
         self.wiki_graph = wiki_graph
         self.prop_embeddings = self.wiki_graph.vertex_properties["embedding"]
 
-    def act(self, observation, reward, done):
-        return {"type": "move", "direction": np.random.rand(self.dim)}
+    def act(self, observation):
+        return np.random.rand(self.dim)
 
 
 class SimpleAgent(object):
@@ -19,8 +19,8 @@ class SimpleAgent(object):
         self.wiki_graph = wiki_graph
         self.prop_embeddings = self.wiki_graph.vertex_properties["embedding"]
 
-    def act(self, observation, reward, done):
-        return {"type": "move", "direction": self.prop_embeddings[observation[1]]}
+    def act(self, observation):
+        return self.prop_embeddings[observation[1]]
 
 
 class SimpleRandomAgent(object):
@@ -30,7 +30,7 @@ class SimpleRandomAgent(object):
         self.wiki_graph = wiki_graph
         self.prop_embeddings = self.wiki_graph.vertex_properties["embedding"]
 
-    def act(self, observation, reward, done):
+    def act(self, observation):
         if random.random() < self.prob:
-            return {"type": "move", "direction": np.random.rand(self.dim)}
-        return {"type": "move", "direction": self.prop_embeddings[observation[1]]}
+            return np.random.rand(self.dim)
+        return self.prop_embeddings[observation[1]]
