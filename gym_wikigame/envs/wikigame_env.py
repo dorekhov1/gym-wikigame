@@ -1,8 +1,12 @@
 import random
 
 import gym
+import gym.spaces
 import numpy as np
-from graph_tool.topology import shortest_path, shortest_distance
+import graph_tool as gt
+from graph_tool.topology import shortest_distance
+
+from config_parser import Configs
 
 
 class WikigameEnv(gym.Env):
@@ -21,11 +25,13 @@ class WikigameEnv(gym.Env):
         self.n = 1
 
         self.shortest_dist = None
-        # self.observation_space = 1024
-        # self.action_space = 512
+        self.observation_space = gym.spaces.Box(0, 1, shape=(1024,))
+        self.action_space = gym.spaces.Box(0, 1, shape=(512,))
 
-    def set_graph(self, wiki_graph):
-        self.wiki_graph = wiki_graph
+        cf = Configs('PPO')
+
+        self.wiki_graph = gt.load_graph(cf.graph_path)
+
         self.num_pages = self.wiki_graph.num_vertices()
         self.p_titles = self.wiki_graph.vertex_properties["title"]
         self.p_ids = self.wiki_graph.vertex_properties["id"]
