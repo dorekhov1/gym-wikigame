@@ -3,7 +3,7 @@ import graph_tool as gt
 import torch
 
 from config_parser import Configs
-from agents.PPO_continuous import PPO, Memory
+from agents.PPO import PPO, Memory
 from agents.simple_agents import *
 
 
@@ -16,18 +16,13 @@ def main():
     state_dim = 512
     action_dim = 512
 
-    wiki_graph = gt.load_graph(cf.graph_path)
-    prop_embeddings = wiki_graph.vertex_properties["embedding"]
-
-    env.set_graph(wiki_graph)
-
     if cf.random_seed:
         torch.manual_seed(cf.random_seed)
         env.seed(cf.random_seed)
         np.random.seed(cf.random_seed)
 
     memory = Memory()
-    ppo = PPO(state_dim, action_dim, cf.action_std, cf.lr, cf.betas, cf.gamma, cf.k_epochs, cf.eps_clip)
+    ppo = PPO(state_dim, action_dim, 1024, cf.lr, cf.betas, cf.gamma, cf.k_epochs, cf.eps_clip)
 
     # logging variables
     running_reward = 0
@@ -37,16 +32,11 @@ def main():
     # training loop
     for i_episode in range(1, cf.max_episodes + 1):
         state = env.reset()
-        goal_state_embedding = prop_embeddings[state[1]]
         for t in range(cf.max_timesteps):
             time_step += 1
 
-            start_state_embedding = prop_embeddings[state[0]]
-
-            state_embedding = np.concatenate((start_state_embedding, goal_state_embedding))
-
             # Running policy_old:
-            action = ppo.select_action(goal_state_embedding, memory)
+            action = ppo.policy_old.act(state, memory)
             state, reward, done, _ = env.step(action)
 
             # Saving reward and is_terminals:
