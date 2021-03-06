@@ -20,19 +20,38 @@ class EmbeddingComputer:
         with open("data/processed/pages.pickle", "rb") as handle:
             self.pages = pickle.load(handle)
 
+    def delete_pages(self, pages_to_remove):
+        for page_to_remove in pages_to_remove:
+            del self.pages[page_to_remove]
+
+        for page_title in self.pages:
+            for page_to_remove in pages_to_remove:
+                if page_to_remove in self.pages[page_title]['links']:
+                    self.pages[page_title]['links'].remove(page_to_remove)
+
     def embed_titles(self):
         batch_page_titles = []
         clean_batch_page_titles = []
-        for page_title in tqdm(self.pages):
+        missed_titles = 0
+        titles = self.pages.keys()
+        titles_to_delete = []
+        for page_title in tqdm(titles):
 
-            clean_title = page_title.replace("_", " ").replace("\\", "")
+            try:
+                clean_title = self.pages[page_title]['proper_title']
+            except:
+                missed_titles += 1
+                titles_to_delete.append(page_title)
+                continue
 
             batch_page_titles.append(page_title)
             clean_batch_page_titles.append(clean_title)
             if len(batch_page_titles) == self.batch_size:
                 self.embed_batch(batch_page_titles, clean_batch_page_titles)
                 batch_page_titles = []
+        print(f'Missed titles: {missed_titles}')
         self.embed_batch(batch_page_titles, clean_batch_page_titles)
+        self.delete_pages(titles_to_delete)
 
     def embed_batch(self, batch_page_titles, clean_batch_page_titles):
         batch_title_embeddings = self.embed(clean_batch_page_titles)

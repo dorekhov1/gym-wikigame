@@ -25,7 +25,7 @@ class GraphCreator:
         for page_title in tqdm(self.pages.keys()):
             page = self.pages[page_title]
             page_vertex = self.g.add_vertex()
-            self.g.vp.title[page_vertex] = page_title
+            self.g.vp.title[page_vertex] = page["proper_title"]
             self.g.vp.id[page_vertex] = page["id"]
             self.g.vp.embedding[page_vertex] = page["title_embedding"]
             self.page_title_to_vertex_map[page_title] = page_vertex

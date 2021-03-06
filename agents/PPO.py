@@ -3,10 +3,7 @@ import torch.nn as nn
 from torch.distributions import Categorical
 import numpy as np
 
-import tqdm
-
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-device = "cpu"
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class Memory:
@@ -138,7 +135,7 @@ class PPO:
 
 
         # Optimize policy for K epochs:
-        for _ in tqdm.trange(self.K_epochs):
+        for _ in range(self.K_epochs):
             # Evaluating old actions and values :
             logprobs, state_values, dist_entropy = self.policy.evaluate(old_states, old_actions)
 
