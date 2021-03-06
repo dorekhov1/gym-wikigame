@@ -1,4 +1,5 @@
-titlecase==1.1.1
-mwparserfromhell==0.5.4
-tqdm==4.50.2
-numpy==1.19.2
+numpy==1.18.5
+torch==1.7.0
+pandas==1.2.2
+tqdm
+gym==0.17.3

@@ -1,5 +1,4 @@
 import gym
-import graph_tool as gt
 import torch
 
 from config_parser import Configs
