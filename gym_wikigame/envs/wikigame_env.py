@@ -47,7 +47,7 @@ class WikigameEnv(gym.Env):
         return gym.spaces.Box(-1, 1, shape=(1, 1024,))
 
     def get_random_vertex(self):
-        idx = random.randrange(self.num_pages + 1)
+        idx = random.randrange(self.num_pages)
         v = self.wiki_graph.vertex(idx)
         return v
 
