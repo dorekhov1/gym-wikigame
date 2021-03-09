@@ -3,3 +3,4 @@ data/
 **/__pycache__/
 gym_wikigame.egg-info
 data_prep/wikiextractor
+*.pth
