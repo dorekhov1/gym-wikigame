@@ -120,42 +120,6 @@ class DataExtractor:
         print(f"Missed links by link id: {missed_links_by_link_id}")
         print(f"Total links: {total_links}")
 
-    def process_links(self):
-        num_lines = sum(
-            1 for _ in open(DataExtractor.links_file_path, "rt", encoding="utf-8", errors="ignore")
-        )
-
-        total_links = 0
-        missed_links_by_title = 0
-        missed_links_by_link_id = 0
-        with open(DataExtractor.links_file_path, "rt", encoding="utf-8", errors="ignore") as f:
-            for line in tqdm(f, total=num_lines):
-                all_rows = re.findall(DataExtractor.link_row_regex, line)
-                for row in all_rows:
-                    row_list = re.findall(DataExtractor.link_list_regex, row)[0]
-                    link_id = row_list[0]
-                    link_target = row_list[2]
-
-                    # need to do this in case the target is a redirect
-                    if link_target in self.title_to_id_map:
-                        target_id = self.title_to_id_map[link_target]
-                        target_title = self.pages[target_id]["title"]
-                    else:
-                        missed_links_by_title += 1
-                        continue
-
-                    if link_id in self.pages and target_title != self.pages[link_id]['title']:
-                        self.pages[link_id]["links"].add(target_title)
-                    else:
-                        missed_links_by_link_id += 1
-                        continue
-
-                    total_links += 1
-
-        print(f"Missed links by title: {missed_links_by_title}")
-        print(f"Missed links by link id: {missed_links_by_link_id}")
-        print(f"Total links: {total_links}")
-
     @staticmethod
     def normalize_title(title: str):
         title = title.replace(" ", "")

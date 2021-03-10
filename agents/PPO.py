@@ -1,7 +1,8 @@
+import pickle
+
 import torch
 import torch.nn as nn
 from torch.distributions import Categorical
-import numpy as np
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -24,8 +25,10 @@ class Memory:
 
 class ActionValueLayer(nn.Module):
 
-    def __init__(self, state_dim, num_heads, is_action_layer):
+    def __init__(self, embedding, state_dim, num_heads, is_action_layer):
         super(ActionValueLayer, self).__init__()
+
+        self.embeddings = embedding
 
         self.multihead_attn = nn.MultiheadAttention(state_dim, num_heads)
         self.linear_layer = nn.Linear(state_dim*2, 1)
@@ -35,44 +38,46 @@ class ActionValueLayer(nn.Module):
         else:
             self.last_layer = torch.mean
 
-    def act(self, goal_embeddings, links_embeddings):
+    def act(self, state):
+
+        if len(state.shape) == 1:
+            state = torch.reshape(state, [1, state.shape[0]])
+        goal_state, links_state = state[:, 0], state[:, 1:]
+        goal_state = torch.unsqueeze(goal_state, 1)
+
+        goal_embeddings = self.embeddings(goal_state)
+        links_embeddings = self.embeddings(links_state)
 
         attn_output, _ = self.multihead_attn(links_embeddings, links_embeddings, links_embeddings)
 
-        goal_embeddings = torch.vstack([goal_embeddings] * attn_output.shape[0])
-        goal_embeddings = torch.reshape(goal_embeddings, [attn_output.shape[0], attn_output.shape[1], goal_embeddings.shape[1]])
+        goal_embeddings = goal_embeddings.expand(-1, attn_output.shape[1], -1)
 
-        # attn_output = torch.reshape(attn_output, [attn_output.shape[0], attn_output.shape[2]])
         state_embeddings = torch.cat((goal_embeddings, attn_output), dim=-1)
         scores = self.linear_layer(state_embeddings)
         scores = torch.squeeze(scores, dim=-1)
         if self.is_action_layer:
             return self.last_layer(scores)
         else:
-            return self.last_layer(scores, dim=0)
+            return self.last_layer(scores, dim=1)
 
 
 class ActorCritic(nn.Module):
-    def __init__(self, state_dim, action_dim, n_latent_var):
+    def __init__(self, embeddings, state_dim, action_dim, n_latent_var):
         super(ActorCritic, self).__init__()
 
-        self.action_layer = ActionValueLayer(state_dim, 2, True)
-        self.value_layer = ActionValueLayer(state_dim, 2, False)
+        self.embeddings = embeddings
+
+        self.action_layer = ActionValueLayer(self.embeddings, state_dim, 2, True)
+        self.value_layer = ActionValueLayer(self.embeddings, state_dim, 2, False)
 
     def forward(self):
         raise NotImplementedError
 
     def act(self, state, memory):
 
-        state = np.reshape(state, [state.shape[0], 1, state.shape[1]])
-        goal_state, links_state = state[0], state[1:]
+        state = torch.from_numpy(state).long().to(device)
 
-        state = torch.from_numpy(state).float().to(device)
-        goal_state = torch.from_numpy(goal_state).float().to(device)
-        links_state = torch.from_numpy(links_state).float().to(device)
-
-        action_probs = self.action_layer.act(goal_state, links_state)
-        action_probs = action_probs.permute([1, 0])
+        action_probs = self.action_layer.act(state)
 
         dist = Categorical(action_probs)
         action = dist.sample()
@@ -84,32 +89,33 @@ class ActorCritic(nn.Module):
         return action.item()
 
     def evaluate(self, state, action):
-        state = torch.squeeze(state)
-        goal_state, links_state = state[0], state[1:]
 
-        action_probs = self.action_layer.act(goal_state, links_state)
-        action_probs = action_probs.permute([1, 0])
+        action_probs = self.action_layer.act(state)
         dist = Categorical(action_probs)
 
         action_logprobs = dist.log_prob(action)
         dist_entropy = dist.entropy()
 
-        state_value = self.value_layer.act(goal_state, links_state)
+        state_value = self.value_layer.act(state)
 
         return action_logprobs, torch.squeeze(state_value), dist_entropy
 
 
 class PPO:
     def __init__(self, state_dim, action_dim, n_latent_var, lr, betas, gamma, K_epochs, eps_clip):
+
+        with open("data/processed/torch_embeddings.pickle", "rb") as handle:
+            self.embeddings = pickle.load(handle)
+
         self.lr = lr
         self.betas = betas
         self.gamma = gamma
         self.eps_clip = eps_clip
         self.K_epochs = K_epochs
 
-        self.policy = ActorCritic(state_dim, action_dim, n_latent_var).to(device)
-        self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr, betas=betas)
-        self.policy_old = ActorCritic(state_dim, action_dim, n_latent_var).to(device)
+        self.policy = ActorCritic(self.embeddings, state_dim, action_dim, n_latent_var).to(device)
+        self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr, betas=betas) # TODO apparently this optimizer won't work
+        self.policy_old = ActorCritic(self.embeddings, state_dim, action_dim, n_latent_var).to(device)
         self.policy_old.load_state_dict(self.policy.state_dict())
 
         self.MseLoss = nn.MSELoss()
@@ -129,7 +135,7 @@ class PPO:
         rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-5)
 
         # convert list to tensor
-        old_states = torch.nn.utils.rnn.pad_sequence(memory.states, batch_first=False).to(device).detach()
+        old_states = torch.nn.utils.rnn.pad_sequence(memory.states, batch_first=True).to(device).detach()
         old_actions = torch.stack(memory.actions).to(device).detach()
         old_logprobs = torch.stack(memory.logprobs).to(device).detach()
 

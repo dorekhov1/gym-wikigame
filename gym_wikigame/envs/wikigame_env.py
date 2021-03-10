@@ -1,7 +1,6 @@
 import random
 
 import gym
-import gym.spaces
 import numpy as np
 import graph_tool as gt
 from graph_tool.topology import shortest_distance
@@ -13,11 +12,7 @@ class WikigameEnv(gym.Env):
     metadata = {"render.modes": ["human"]}
 
     def __init__(self):
-        self.wiki_graph = None
         self.num_pages = None
-        self.p_titles = None
-        self.p_ids = None
-        self.p_embeddings = None
         self.v_goal = None
         self.v_start = None
         self.v_curr = None
@@ -36,46 +31,28 @@ class WikigameEnv(gym.Env):
         self.num_pages = self.wiki_graph.num_vertices()
         self.p_titles = self.wiki_graph.vertex_properties["title"]
         self.p_ids = self.wiki_graph.vertex_properties["id"]
-        self.p_embeddings = self.wiki_graph.vertex_properties["embedding"]
-
-    @property
-    def action_space(self):
-        return gym.spaces.Discrete(self.num_links)
-
-    @property
-    def observation_space(self):
-        return gym.spaces.Box(-1, 1, shape=(1, 1024,))
 
     def get_random_vertex(self):
-        idx = random.randrange(self.num_pages)
-        v = self.wiki_graph.vertex(idx)
-        return v
+        random_index = random.randrange(self.num_pages)
+        random_vertex = self.wiki_graph.vertex(random_index)
+        return random_vertex
 
-    def get_random_vertex_n_away_from_source(self, v_source):
-        v = v_source
+    def get_random_vertex_n_away_from_goal(self, v_goal):
+        v = v_goal
         for _ in range(self.n):
-            v_links = list(v.out_neighbors())
+            v_links = list(v.in_neighbours())
             v = random.choice(v_links)
         return v
 
-    def get_links_and_embeddings(self, v_source):
-        v_links = list(v_source.out_neighbors())
-        embeddings = list(map(lambda v: self.p_embeddings[v], v_links))
-        return v_links, embeddings
-
     def get_observation_tensor(self):
-        observation_tensor = np.empty([self.num_links+1, 512])
-        observation_tensor[0] = self.p_embeddings[self.v_goal]
+        observation_tensor = [int(self.v_goal)]
 
-        i = 1
         self.v_curr_neighbors = []
         for v in self.v_curr.out_neighbors():
             self.v_curr_neighbors.append(v)
-            emb = self.p_embeddings[v]
-            observation_tensor[i] = emb
-            i += 1
+            observation_tensor.append(int(v))
 
-        return observation_tensor
+        return np.array(observation_tensor)
 
     def step(self, action: int):
         # print(f'action: {action}, num_neighbours: {len(self.v_curr_neighbors)}')
@@ -110,13 +87,15 @@ class WikigameEnv(gym.Env):
         )
 
     def reset(self):
-        self.v_start = self.get_random_vertex()
+        self.v_goal = self.get_random_vertex()
         if self.random_goal:
-            self.v_goal = self.get_random_vertex()
+            self.v_start = self.get_random_vertex()
         else:
-            self.v_goal = self.get_random_vertex_n_away_from_source(self.v_start)
+            self.v_start = self.get_random_vertex_n_away_from_goal(self.v_goal)
 
-        # print(f"Start: {self.p_titles[self.v_start]}, #links: {num_links}")
+        assert self.v_goal in list(self.v_start.out_neighbours())
+
+        # print(f"Start: {self.p_titles[self.v_start]}")
         # print(f"Goal: {self.p_titles[self.v_goal]}")
 
         self.shortest_dist = shortest_distance(
