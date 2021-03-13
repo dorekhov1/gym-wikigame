@@ -21,7 +21,7 @@ class TorchEmbeddingBuilder:
         for v in tqdm(self.wiki_graph.vertices()):
             title_embedding = vp_embedding[v]
             embeddings_list.append(title_embedding)
-        self.embedding = nn.Embedding.from_pretrained(torch.FloatTensor(embeddings_list))
+        self.embedding = nn.Embedding.from_pretrained(torch.FloatTensor(embeddings_list), freeze=False)
         del self.wiki_graph.vertex_properties["embedding"]
 
     def save_results(self):

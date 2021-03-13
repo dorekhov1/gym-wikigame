@@ -73,6 +73,8 @@ class WikigameEnv(gym.Env):
         else:
             reward = int(done)
 
+        # reward = int(done)
+
         self.shortest_dist = new_shortest_dist
 
         self.v_curr = v_new
