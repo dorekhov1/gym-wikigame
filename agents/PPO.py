@@ -59,10 +59,9 @@ class ActionValueLayer(nn.Module):
 
         attn_output_weights = attn_output_weights[:, 0]
 
-        if mask is not None:
-            attn_output_weights *= torch.add(-1, mask)
-
         if self.is_action_layer:
+            if mask is not None:
+                attn_output_weights[mask] = float('-inf')
             return self.last_layer(attn_output_weights)
         else:
             return self.last_layer(attn_output_weights, dim=1)
