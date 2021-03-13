@@ -36,7 +36,7 @@ class ActionValueLayer(nn.Module):
         self.linear_layer2 = nn.Linear(128, 1)
         self.is_action_layer = is_action_layer
         if is_action_layer:
-            self.last_layer = nn.Softmax(dim=0)
+            self.last_layer = nn.Softmax(dim=-1)
         else:
             self.last_layer = torch.mean
 
@@ -48,22 +48,24 @@ class ActionValueLayer(nn.Module):
         goal_embeddings = self.embeddings(goal_state)
         links_embeddings = self.embeddings(links_state)
 
-        goal_embeddings = goal_embeddings.expand(links_embeddings.shape[0], -1, -1)
+        # goal_embeddings = goal_embeddings.expand(links_embeddings.shape[0], -1, -1)
 
-        attn_output, _ = self.multihead_attn(goal_embeddings, links_embeddings, links_embeddings, key_padding_mask=mask)
+        attn_output, attn_output_weights = self.multihead_attn(goal_embeddings, links_embeddings, links_embeddings, key_padding_mask=mask)
 
-        scores = self.linear_layer1(attn_output)
-        scores = self.relu(scores)
-        scores = self.linear_layer2(scores)
-        scores = torch.squeeze(scores, dim=-1)
+        # scores = self.linear_layer1(attn_output)
+        # scores = self.relu(scores)
+        # scores = self.linear_layer2(scores)
+        # scores = torch.squeeze(scores, dim=-1)
+
+        attn_output_weights = attn_output_weights[:, 0]
 
         if mask is not None:
-            scores *= torch.add(-1, mask.permute([1, 0]))
+            attn_output_weights *= torch.add(-1, mask)
 
         if self.is_action_layer:
-            return self.last_layer(scores)
+            return self.last_layer(attn_output_weights)
         else:
-            return self.last_layer(scores, dim=0)
+            return self.last_layer(attn_output_weights, dim=1)
 
 
 class ActorCritic(nn.Module):
@@ -85,7 +87,7 @@ class ActorCritic(nn.Module):
             state = torch.reshape(state, [state.shape[0], 1])
 
         action_probs = self.action_layer.act(state)
-        action_probs = action_probs.permute([1, 0])
+        # action_probs = action_probs.permute([1, 0])
         dist = Categorical(action_probs)
         action = dist.sample()
 
@@ -103,7 +105,7 @@ class ActorCritic(nn.Module):
         mask = mask.permute([1, 0])
 
         action_probs = self.action_layer.act(state, mask)
-        action_probs = action_probs.permute([1, 0])
+        # action_probs = action_probs.permute([1, 0])
         dist = Categorical(action_probs)
 
         action_logprobs = dist.log_prob(action)
