@@ -89,7 +89,7 @@ class ActionValueLayer(nn.Module):
 
 
 class ActorCritic(nn.Module):
-    def __init__(self, embeddings, state_dim, action_dim, n_latent_var):
+    def __init__(self, embeddings, state_dim):
         super(ActorCritic, self).__init__()
 
         self.embeddings = embeddings
@@ -129,25 +129,49 @@ class ActorCritic(nn.Module):
 
 
 class PPO:
-    def __init__(self, state_dim, action_dim, n_latent_var, lr, betas, gamma, K_epochs, eps_clip):
+    def __init__(self, wiki_graph, kwargs):
+        self.memory = Memory()
 
-        self.embeddings = torch.nn.Embedding(16563, 512)
+        self.emb_dim = kwargs['emb_dim']
+        self.lr = kwargs['lr']
+        self.betas = kwargs['betas']
+        self.gamma = kwargs['gamma']
+        self.eps_clip = kwargs['eps_clip']
+        self.k_epochs = kwargs['k_epochs']
+        self.optimize_timestep = kwargs['optimize_timestep']
+
+        self.embeddings = torch.nn.Embedding(wiki_graph.num_vertices(), self.emb_dim)
         self.embeddings.weight.requires_grad = True
 
-        self.lr = lr
-        self.betas = betas
-        self.gamma = gamma
-        self.eps_clip = eps_clip
-        self.K_epochs = K_epochs
-
-        self.policy = ActorCritic(self.embeddings, state_dim, action_dim, n_latent_var).to(device)
-        self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr, betas=betas)
-        self.policy_old = ActorCritic(self.embeddings, state_dim, action_dim, n_latent_var).to(device)
+        self.policy = ActorCritic(self.embeddings, self.emb_dim).to(device)
+        self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=self.lr, betas=self.betas)
+        self.policy_old = ActorCritic(self.embeddings, self.emb_dim).to(device)
         self.policy_old.load_state_dict(self.policy.state_dict())
-
         self.MseLoss = nn.MSELoss()
+        self.update_timestep = 0
 
-    def update(self, memory):
+    def act(self, state):
+        return self.policy_old.act(state, self.memory)
+
+    def update(self, reward, done):
+        self.update_timestep += 1
+
+        # Saving reward and is_terminals:
+        self.memory.rewards.append(reward)
+        self.memory.is_terminals.append(done)
+
+        # update if its time
+        if self.update_timestep % self.optimize_timestep == 0:
+            self.optimize(self.memory)
+            self.memory.clear_memory()
+
+    def save(self, solved=False):
+        if solved:
+            torch.save(self.policy.state_dict(), './models/PPO_solved.pth')
+        else:
+            torch.save(self.policy.state_dict(), './models/PPO.pth')
+
+    def optimize(self, memory):
 
         # Monte Carlo estimate of state rewards:
         rewards = []
@@ -172,7 +196,7 @@ class PPO:
         old_states = torch.nn.utils.rnn.pad_sequence(memory.states, batch_first=False).to(device).detach()
 
         # Optimize policy for K epochs:
-        for _ in range(self.K_epochs):
+        for _ in range(self.k_epochs):
             # Evaluating old actions and values :
             logprobs, state_values, dist_entropy = self.policy.evaluate(old_states, old_actions, mask)
 

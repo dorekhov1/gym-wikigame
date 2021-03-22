@@ -2,7 +2,7 @@ import gym
 import graph_tool as gt
 
 from config_parser import Configs
-from agents.simple_agents import *
+from agents.random_agent import *
 
 
 def main():

@@ -10,7 +10,6 @@ from config_parser import Configs
 
 
 class WikigameEnv(gym.Env):
-    metadata = {"render.modes": ["human"]}
 
     def __init__(self):
         self.num_pages = None
@@ -20,7 +19,7 @@ class WikigameEnv(gym.Env):
         self.v_curr_neighbors = []
         self.observation_tensor = None
 
-        cf = Configs('PPO')
+        cf = Configs()
         self.n_steps_away = cf.n_steps_away
         self.random_goal = cf.random_goal
 
@@ -91,10 +90,7 @@ class WikigameEnv(gym.Env):
 
         return self.observation_tensor
 
-    def render(self, mode="human"):
-        pass
-
-    def close(self):
+    def render(self, mode='human'):
         pass
 
     def seed(self, seed=None):
