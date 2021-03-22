@@ -28,10 +28,13 @@ def main():
     avg_length = 0
     time_step = 0
 
+    avg_rewards = []
+
     # training loop
     for i_episode in range(1, cf.max_episodes + 1):
         state = env.reset()
-        for t in range(cf.max_timesteps):
+        done = False
+        while not done:
             time_step += 1
 
             # Running policy_old:
@@ -51,25 +54,25 @@ def main():
             if cf.render:
                 env.render()
             if done:
-                # print(f"Done in {t} steps")
                 break
 
-        avg_length += t
+        avg_length += env.t
 
         # stop training if avg_reward > solved_reward
         if running_reward > (cf.log_interval * cf.solved_reward):
             print("########## Solved! ##########")
-            torch.save(ppo.policy.state_dict(), './PPO_continuous_solved_{}.pth'.format(cf.env_name))
+            torch.save(ppo.policy.state_dict(), './models/PPO_continuous_solved_{}.pth'.format(cf.env_name))
             break
 
         # save every 500 episodes
         if i_episode % 500 == 0:
-            torch.save(ppo.policy.state_dict(), './PPO_continuous_{}.pth'.format(cf.env_name))
+            torch.save(ppo.policy.state_dict(), './models/PPO_continuous_{}.pth'.format(cf.env_name))
 
         # logging
         if i_episode % cf.log_interval == 0:
             avg_length = int(avg_length / cf.log_interval)
             running_reward = (running_reward / cf.log_interval)
+            avg_rewards.append(running_reward)
 
             print('Episode {} \t Avg length: {} \t Avg reward: {}'.format(i_episode, avg_length, running_reward))
             running_reward = 0

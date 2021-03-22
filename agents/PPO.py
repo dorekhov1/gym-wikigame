@@ -1,11 +1,46 @@
 import pickle
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# device = 'cpu'
+
+
+class BufferAttend1d(nn.Module):
+    def __init__(self, dim_in, key_dim, val_dim):
+        super().__init__()
+        self.key_dim, self.val_dim = key_dim, val_dim
+        self.key_fn = nn.Linear(dim_in, key_dim)
+        self.query_fn = nn.Linear(dim_in, key_dim)
+        self.value_fn = nn.Linear(dim_in, val_dim)
+
+        self.fill = nn.Parameter(-1024 * torch.ones([1, 1]), requires_grad=False)
+
+    def forward(self, x, buffer=None, residual=False, mask=None):
+        if buffer is None:
+            buffer = x
+
+        query = self.key_fn(x)  # shape(..., Q, d)
+
+        keys = self.key_fn(buffer)  # shape(..., K, d)
+        vals = self.value_fn(buffer)  # shape(..., K, d)
+        logits = torch.einsum("...qd, ...kd -> ...qk", query, keys) / np.sqrt(self.key_dim)  # shape(..., Q, K)
+
+        if mask is not None:
+            mask = ~mask.unsqueeze(1)  # Was lazy here...should probably fix the mask elsewhere.
+            logits = torch.where(mask, logits, self.fill)
+
+        probs = torch.exp(logits - logits.max(dim=-1, keepdim=True)[0])
+        probs = probs / probs.sum(-1, keepdim=True)
+        read = torch.einsum("...qk, ...kd -> ...qd", probs, vals)  # shape(..., Q, d)
+
+        if residual:
+            read = read + x
+
+        return probs, read
+
 
 class Memory:
     def __init__(self):
@@ -30,41 +65,27 @@ class ActionValueLayer(nn.Module):
 
         self.embeddings = embedding
 
-        self.multihead_attn = nn.MultiheadAttention(state_dim, num_heads)
-        self.linear_layer1 = nn.Linear(state_dim, 128)
-        self.relu = nn.ReLU()
-        self.linear_layer2 = nn.Linear(128, 1)
+        self.attend = BufferAttend1d(state_dim, num_heads, num_heads)
         self.is_action_layer = is_action_layer
-        if is_action_layer:
-            self.last_layer = nn.Softmax(dim=-1)
-        else:
-            self.last_layer = torch.mean
+        self.value_layer = nn.Linear(num_heads, 1)
 
     def act(self, state, mask=None):
+        if len(state.shape) == 1:
+            goal_state, links_state = state[0], state[1:]
+            goal_state = torch.unsqueeze(goal_state, 0)
+        else:
+            goal_state, links_state = state[:, 0], state[:, 1:]
+            goal_state = torch.unsqueeze(goal_state, 1)
 
-        goal_state, links_state = state[0], state[1:]
-        goal_state = torch.unsqueeze(goal_state, 0)
+        goal_embeddings = self.embeddings(goal_state).squeeze(-1)
+        links_embeddings = self.embeddings(links_state).squeeze(-1)
 
-        goal_embeddings = self.embeddings(goal_state)
-        links_embeddings = self.embeddings(links_state)
-
-        # goal_embeddings = goal_embeddings.expand(links_embeddings.shape[0], -1, -1)
-
-        attn_output, attn_output_weights = self.multihead_attn(goal_embeddings, links_embeddings, links_embeddings, key_padding_mask=mask)
-
-        # scores = self.linear_layer1(attn_output)
-        # scores = self.relu(scores)
-        # scores = self.linear_layer2(scores)
-        # scores = torch.squeeze(scores, dim=-1)
-
-        attn_output_weights = attn_output_weights[:, 0]
+        probs, read = self.attend(goal_embeddings, links_embeddings, mask=mask)
 
         if self.is_action_layer:
-            if mask is not None:
-                attn_output_weights[mask] = float('-inf')
-            return self.last_layer(attn_output_weights)
+            return probs
         else:
-            return self.last_layer(attn_output_weights, dim=1)
+            return self.value_layer(read)
 
 
 class ActorCritic(nn.Module):
@@ -73,20 +94,16 @@ class ActorCritic(nn.Module):
 
         self.embeddings = embeddings
 
-        self.action_layer = ActionValueLayer(self.embeddings, state_dim, 2, True)
-        self.value_layer = ActionValueLayer(self.embeddings, state_dim, 2, False)
+        self.action_layer = ActionValueLayer(self.embeddings, state_dim, 16, True)
+        self.value_layer = ActionValueLayer(self.embeddings, state_dim, 16, False)
 
     def forward(self):
         raise NotImplementedError
 
     def act(self, orig_state, memory):
-
-        state = torch.from_numpy(orig_state).long().to(device)
-        if len(state.shape) == 1:
-            state = torch.reshape(state, [state.shape[0], 1])
+        state = torch.from_numpy(orig_state).long().to(device).squeeze()
 
         action_probs = self.action_layer.act(state)
-        # action_probs = action_probs.permute([1, 0])
         dist = Categorical(action_probs)
         action = dist.sample()
 
@@ -97,14 +114,10 @@ class ActorCritic(nn.Module):
         return action.item()
 
     def evaluate(self, state, action, mask):
-
-        state = state.squeeze()
-        mask = mask.squeeze()
-        mask = mask[1:]
-        mask = mask.permute([1, 0])
+        state = state.squeeze().permute([1, 0])  # (BATCH, LINKS)
+        mask = mask[1:].permute([1, 0])
 
         action_probs = self.action_layer.act(state, mask)
-        # action_probs = action_probs.permute([1, 0])
         dist = Categorical(action_probs)
 
         action_logprobs = dist.log_prob(action)
@@ -118,9 +131,7 @@ class ActorCritic(nn.Module):
 class PPO:
     def __init__(self, state_dim, action_dim, n_latent_var, lr, betas, gamma, K_epochs, eps_clip):
 
-        with open("data/processed/torch_embeddings.pickle", "rb") as handle:
-            self.embeddings = pickle.load(handle)
-
+        self.embeddings = torch.nn.Embedding(16563, 512)
         self.embeddings.weight.requires_grad = True
 
         self.lr = lr

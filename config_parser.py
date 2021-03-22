@@ -13,6 +13,10 @@ class Configs:
         self.graph_path = section.get('graph_path')
         self.max_episodes = section.getint('max_episodes')
         self.max_timesteps = section.getint('max_timesteps')
+        self.random_goal = section.getboolean('random_goal')
+        self.n_steps_away = section.getint('n_steps_away')
+        self.random_seed = section.getfloat('random_seed')
+        self.reward_fn = section.get('reward_fn')
 
         if section_name == "PPO":
             self.render = section.getboolean('render')
@@ -25,4 +29,3 @@ class Configs:
             self.gamma = section.getfloat('gamma')
             self.lr = section.getfloat('lr')
             self.betas = (section.getfloat('beta1'), section.getfloat('beta2'))
-            self.random_seed = section.getfloat('random_seed')
