@@ -8,7 +8,7 @@ class RandomAgent(object):
     def act(self, state):
         links = state[1:]
 
-        return np.argwhere(links==np.random.choice(state[1:]))[0][0]
+        return np.argwhere(links == np.random.choice(state[1:]))[0][0]
 
     def update(self, reward, done):
         pass
