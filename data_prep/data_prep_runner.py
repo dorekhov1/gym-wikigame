@@ -1,7 +1,5 @@
 from data_prep.data_processing import DataExtractor
-from data_prep.embeddings_computation import EmbeddingComputer
 from data_prep.graph_creation import GraphCreator
-from data_prep.torch_embeddings_builder import TorchEmbeddingBuilder
 
 
 def run_data_extractor():
@@ -24,16 +22,6 @@ def run_data_extractor():
     data_extractor.save_pages()
 
 
-def run_embedding_computer():
-    embeddings_generator = EmbeddingComputer()
-    print("Loading pages")
-    embeddings_generator.load_pages()
-    print("Embedding titles")
-    embeddings_generator.embed_titles()
-    print("Saving pages")
-    embeddings_generator.save_data()
-
-
 def run_graph_creation():
     gc = GraphCreator()
     print("Loading pages")
@@ -48,25 +36,9 @@ def run_graph_creation():
     gc.save_graph()
 
 
-def run_torch_embedding_builder():
-    builder = TorchEmbeddingBuilder()
-    print('Loading graph')
-    builder.load_graph()
-    print("Constructing embeddings")
-    builder.construct_embeddings()
-    print("Saving results")
-    builder.save_results()
-
-
 if __name__ == "__main__":
     print("Running data extractor\n")
     run_data_extractor()
-
-    print("\nRunning embedding computer\n")
-    run_embedding_computer()
-
-    print("\nRunning graph creation\n")
-    run_graph_creation()
 
     print("\nRunning graph creation\n")
     run_graph_creation()

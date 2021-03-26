@@ -60,10 +60,13 @@ class WikigameEnv(gym.Env):
         v_new = self.v_curr_neighbors[action]
 
         done = False
-        if v_new == self.v_goal or self.t == self.max_timesteps:
+        if v_new == self.v_goal:
             done = True
 
         reward = self.reward_fn(v_new, self.v_goal, done)
+
+        if self.t == self.max_timesteps:
+            done = True
 
         self.v_curr = v_new
         self.observation_tensor = self.get_observation_tensor()
