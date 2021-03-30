@@ -26,15 +26,15 @@ class GridSearcher:
             np.random.seed(self.cf.random_seed)
 
         self.grid = {
-            "optimize_timestep": [10],
-            "k_epochs": [5 ],
+            "optimize_timestep": [5, 10, 20],
+            "k_epochs": [2, 5, 10],
             "eps_clip": [0.2],
             "gamma": [0.99],
-            "lr": [0.01, 0.005, 0.001],
+            "lr": [0.02, 0.01, 0.005, 0.002, 0.001],
             "beta1": [0.9],
             "beta2": [0.999],
             "emb_dim": [16, 32, 64],
-            "num_heads": [8, 16, 32]
+            "num_heads": [8, 16, 32, 64]
         }
 
     def run_experiment(self, agent_kwargs):
@@ -76,12 +76,12 @@ class GridSearcher:
 
     def perform_grid_search(self):
         kwargs = self.generate_grid()
-        with Pool(1) as p:
+        with Pool(10) as p:
             results = list(tqdm(p.imap(self.run_experiment, kwargs), total=len(kwargs)))
 
         print("BEST RESULTS")
         results = sorted(results, key=lambda t: t[0])
-        for r in results[:20]:
+        for r in results[-20:]:
             print(r)
 
 
