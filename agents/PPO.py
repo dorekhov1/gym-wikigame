@@ -87,13 +87,13 @@ class ActionValueLayer(nn.Module):
 
 
 class ActorCritic(nn.Module):
-    def __init__(self, embeddings, state_dim):
+    def __init__(self, embeddings, state_dim, num_heads):
         super(ActorCritic, self).__init__()
 
         self.embeddings = embeddings
 
-        self.action_layer = ActionValueLayer(self.embeddings, state_dim, 16, True)
-        self.value_layer = ActionValueLayer(self.embeddings, state_dim, 16, False)
+        self.action_layer = ActionValueLayer(self.embeddings, state_dim, num_heads, True)
+        self.value_layer = ActionValueLayer(self.embeddings, state_dim, num_heads, False)
 
     def forward(self):
         raise NotImplementedError
@@ -132,18 +132,20 @@ class PPO:
 
         self.emb_dim = kwargs['emb_dim']
         self.lr = kwargs['lr']
-        self.betas = kwargs['betas']
+        self.beta1 = kwargs['beta1']
+        self.beta2 = kwargs['beta2']
         self.gamma = kwargs['gamma']
         self.eps_clip = kwargs['eps_clip']
         self.k_epochs = kwargs['k_epochs']
         self.optimize_timestep = kwargs['optimize_timestep']
+        self.num_heads = kwargs['num_heads']
 
         self.embeddings = torch.nn.Embedding(wiki_graph.num_vertices(), self.emb_dim)
         self.embeddings.weight.requires_grad = True
 
-        self.policy = ActorCritic(self.embeddings, self.emb_dim).to(device)
-        self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=self.lr, betas=self.betas)
-        self.policy_old = ActorCritic(self.embeddings, self.emb_dim).to(device)
+        self.policy = ActorCritic(self.embeddings, self.emb_dim, self.num_heads).to(device)
+        self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=self.lr, betas=(self.beta1, self.beta2))
+        self.policy_old = ActorCritic(self.embeddings, self.emb_dim, self.num_heads).to(device)
         self.policy_old.load_state_dict(self.policy.state_dict())
         self.MseLoss = nn.MSELoss()
         self.update_timestep = 0

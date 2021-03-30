@@ -33,8 +33,10 @@ class Configs:
                 "eps_clip": agent_section.getfloat('eps_clip'),
                 "gamma": agent_section.getfloat('gamma'),
                 "lr": agent_section.getfloat('lr'),
-                "betas": (agent_section.getfloat('beta1'), agent_section.getfloat('beta2')),
+                "beta1": agent_section.getfloat('beta1'),
+                "beta2": agent_section.getfloat('beta2'),
                 "emb_dim": agent_section.getint('emb_dim'),
+                "num_heads": agent_section.getint('num_heads')
             }
 
         return agent_kwargs

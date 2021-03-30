@@ -38,11 +38,19 @@ class WikigameEnv(gym.Env):
         random_vertex = self.wiki_graph.vertex(random_index)
         return random_vertex
 
+    def get_random_start(self, v_goal):
+        v = self.get_random_vertex()
+        while v == v_goal:
+            v = self.get_random_vertex()
+        return v
+
     def get_random_vertex_n_away_from_goal(self, v_goal):
         v = v_goal
         for _ in range(self.n_steps_away):
             v_links = list(v.in_neighbours())
             v = random.choice(v_links)
+        if v == v_goal:
+            return self.get_random_vertex_n_away_from_goal(v_goal)
         return v
 
     def get_observation_tensor(self):
@@ -82,7 +90,7 @@ class WikigameEnv(gym.Env):
         self.t = 0
         self.v_goal = self.get_random_vertex()
         if self.random_goal:
-            self.v_start = self.get_random_vertex()
+            self.v_start = self.get_random_start(self.v_goal)
         else:
             self.v_start = self.get_random_vertex_n_away_from_goal(self.v_goal)
 
