@@ -1,10 +1,10 @@
 import gym
 import torch
+import numpy as np
 from graph_tool.topology import shortest_distance
 
 from config_parser import Configs
 from agents.PPO import ActionValueLayer
-from agents.random_agent import *
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
