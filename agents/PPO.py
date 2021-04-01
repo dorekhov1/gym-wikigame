@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = 'cpu'
 
 class BufferAttend1d(nn.Module):
     def __init__(self, dim_in, key_dim, val_dim):
