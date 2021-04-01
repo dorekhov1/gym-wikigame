@@ -8,8 +8,7 @@ from agents.PPO import ActionValueLayer
 from optimal_policy.data_generation import *
 
 
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-device = 'cpu'
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 wiki_graph = gt.load_graph('data/processed/wiki_graph.gt')
 
@@ -17,7 +16,7 @@ emb_dim = 64
 num_heads = 32
 lr = 0.002
 beta1, beta2 = 0.9, 0.999
-batch_size = 32
+batch_size = 128
 
 g = OptimalPolicyDataGenerator()
 dataset = g.generate_dataset()
@@ -29,11 +28,12 @@ val_dataloader = DataLoader(val_subset, batch_size=batch_size, shuffle=True, num
 
 embedding = nn.Embedding(wiki_graph.num_vertices(), emb_dim)
 net = ActionValueLayer(embedding, emb_dim, num_heads, True)
+net.to(device)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(net.parameters(), lr=lr, betas=(beta1, beta2))
 
-num_epochs = 1000
+num_epochs = 200
 log_interval = 100
 for epoch in range(num_epochs):
 
@@ -63,5 +63,8 @@ for epoch in range(num_epochs):
         val_num_correct += int(sum(torch.argmax(outputs, dim=1) == actions))
 
     print(f"Epoch: {epoch+1}, Train loss: {train_loss / train_size}, Train accuracy: {train_num_correct / train_size}, Val loss: {val_loss / val_size}, Val accuracy: {val_num_correct / val_size}")
+
+torch.save(embedding, './models/embeddings.pth')
+torch.save(net, './models/action_layer.pth')
 
 print('Finished Training')

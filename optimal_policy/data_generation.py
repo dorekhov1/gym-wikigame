@@ -8,8 +8,8 @@ from torch.utils.data import Dataset
 
 from config_parser import Configs
 
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-device = 'cpu'
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 class OptimalPolicyDataset(Dataset):
 
@@ -18,7 +18,7 @@ class OptimalPolicyDataset(Dataset):
         masked_states = torch.nn.utils.rnn.pad_sequence(states, batch_first=False, padding_value=-1).to(device).detach()
         self.mask = masked_states == -1
         self.states = torch.nn.utils.rnn.pad_sequence(states, batch_first=False).to(device).detach()
-        self.actions = torch.LongTensor(actions)
+        self.actions = torch.LongTensor(actions).to(device)
 
     def __len__(self):
         return len(self.states[0])
@@ -53,7 +53,7 @@ class OptimalPolicyDataGenerator:
         paths = list(topology.all_shortest_paths(self.env.wiki_graph, v_curr, v_goal))
         return paths[0][1]
 
-    def generate_dataset(self, n=10000):
+    def generate_dataset(self, n=100000):
         for _ in range(n):
             self.generate_state_optimal_action_pair()
 
