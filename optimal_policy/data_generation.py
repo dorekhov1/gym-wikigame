@@ -42,20 +42,26 @@ class OptimalPolicyDataGenerator:
         self.optimal_actions_one_hot = []
         self.dataset = None
 
-    def generate_state_optimal_action_pair(self):
-        state = self.env.reset()
-        optimal_action = self.get_optimal_action(self.env.v_curr, self.env.v_goal)
+        self.graph = self.env.wiki_graph
+
+    def generate_state_optimal_action_pair(self, start, goal):
+        state = [int(goal)] + list(map(lambda v: int(v), list(start.out_neighbors())))
+        optimal_action = self.get_optimal_action(start, goal)
         assert optimal_action in state
         self.states.append(torch.LongTensor(state))
         self.optimal_actions.append(np.where(state[1:] == optimal_action)[0][0])
 
     def get_optimal_action(self, v_curr, v_goal):
-        paths = list(topology.all_shortest_paths(self.env.wiki_graph, v_curr, v_goal))
+        paths = list(topology.all_shortest_paths(self.graph, v_curr, v_goal))
         return paths[0][1]
 
-    def generate_dataset(self, n=100000):
-        for _ in range(n):
-            self.generate_state_optimal_action_pair()
+    def generate_dataset(self):
+        all_vertices = list(self.graph.vertices())
+        for start in all_vertices:
+            for goal in all_vertices:
+                if start == goal:
+                    continue
+                self.generate_state_optimal_action_pair(start, goal)
 
         self.dataset = OptimalPolicyDataset(self.states, self.optimal_actions)
         return self.dataset
