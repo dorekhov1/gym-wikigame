@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 
+from abstract_agent import AbstractAgent
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -21,7 +23,6 @@ class BufferAttend1d(nn.Module):
             buffer = x
 
         query = self.key_fn(x)  # shape(..., Q, d)
-
         keys = self.key_fn(buffer)  # shape(..., K, d)
         vals = self.value_fn(buffer)  # shape(..., K, d)
         logits = torch.einsum("...qd, ...kd -> ...qk", query, keys) / np.sqrt(self.key_dim)  # shape(..., Q, K)
@@ -126,8 +127,9 @@ class ActorCritic(nn.Module):
         return action_logprobs, torch.squeeze(state_value), dist_entropy
 
 
-class PPO:
+class PPO(AbstractAgent):
     def __init__(self, wiki_graph, kwargs):
+        super().__init__(wiki_graph, kwargs)
         self.memory = Memory()
 
         self.emb_dim = kwargs['emb_dim']
@@ -167,9 +169,9 @@ class PPO:
 
     def save(self, solved=False):
         if solved:
-            torch.save(self.policy.state_dict(), './models/PPO_solved.pth')
+            torch.save(self.policy.action_layer, './models/PPO_action_layer_solved.pth')
         else:
-            torch.save(self.policy.state_dict(), './models/PPO.pth')
+            torch.save(self.policy.action_layer, './models/PPO_action_layer.pth')
 
     def optimize(self, memory):
 

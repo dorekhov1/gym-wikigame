@@ -1,9 +1,11 @@
 import numpy as np
 
+from abstract_agent import AbstractAgent
 
-class RandomAgent(object):
-    def __init__(self, wiki_graph, kwargs):
-        pass
+
+class RandomAgent(AbstractAgent):
+    def __init__(self, wiki_graph=None, kwargs=None):
+        super().__init__(wiki_graph, kwargs)
 
     def act(self, state):
         links = state[1:]
