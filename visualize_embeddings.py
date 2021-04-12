@@ -31,6 +31,12 @@ df['x'] = components[:, 0]
 df['y'] = components[:, 1]
 
 fig = px.scatter(df, x='x', y='y', text=titles)
-fig.update_traces(textposition='top center', textfont_size=16)
+fig.update_traces(textposition='top center', textfont_size=18)
+fig.update_layout(title={
+    'text': "Visualizing Embeddings (Using PCA to reduce dimensions from 64 to 2)",
+    'font': {
+        "size": 30
+    }
+})
 
 fig.show()
