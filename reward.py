@@ -1,9 +1,25 @@
+from abc import ABC, abstractmethod
+
 from graph_tool.topology import shortest_distance
 
 
-class SimpleRewardFn:
+class AbstractRewardFn(ABC):
+    @abstractmethod
     def __init__(self, graph):
+        self.graph = graph
+
+    @abstractmethod
+    def reset(self, v_start, v_goal):
         pass
+
+    @abstractmethod
+    def __call__(self, v_new, v_goal, done):
+        pass
+
+
+class SimpleRewardFn(AbstractRewardFn):
+    def __init__(self, graph):
+        super().__init__(graph)
 
     def reset(self, v_start, v_goal):
         pass
@@ -12,10 +28,10 @@ class SimpleRewardFn:
         return int(done)
 
 
-class PunishingRewardFn:
+class PunishingRewardFn(AbstractRewardFn):
 
     def __init__(self, graph):
-        self.graph = graph
+        super().__init__(graph)
         self.shortest_dist = None
 
     def reset(self, v_start, v_goal):
